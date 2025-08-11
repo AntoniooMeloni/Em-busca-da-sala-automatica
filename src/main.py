@@ -1,163 +1,78 @@
-# --- START OF MODIFIED FILE main.py ---
+# --- src/main.py ---
 
 import cv2
 import time
-from ultralytics import YOLO
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-import platform
-import os # Importa o módulo 'os' para verificação de arquivos
 
-# --- VERIFICA SE ESTÁ RODANDO NO RASPBERRY PI ---
-IS_RASPBERRY_PI = False
-try:
-    if platform.machine().startswith('arm') or platform.machine().startswith('aarch64'):
-        import rasp
-        IS_RASPBERRY_PI = True
-        print("Ambiente Raspberry Pi detectado. Usando controle de GPIO.")
-    else:
-        print("Ambiente não-Raspberry Pi (Linux/Windows) detectado. Usando função de placeholder.")
-except ImportError:
-    print("AVISO: Erro ao importar o módulo 'rasp.py'. Funções de GPIO desativadas.")
-    IS_RASPBERRY_PI = False
+# Importa os módulos da nossa aplicação
+from . import config
+from . import control
+from . import detection
+from . import display
 
+def run():
+    """Função principal que executa o ciclo de vida da aplicação."""
+    print("--- INICIANDO SISTEMA DE DETECÇÃO AUTOMÁTICA ---")
 
-# --- PARÂMETROS DE CONFIGURAÇÃO ---
-CAMERA_INDEX = 0  # Use 0 para webcam interna, 1, 2, etc., para externas.
-OFF_DELAY_SECONDS = 20
-CONFIDENCE_THRESHOLD = 0.5
-
-# --- NOVOS CAMINHOS PARA ASSETS ---
-# Assume que os scripts estão em uma pasta 'src' e 'assets' está no nível acima
-BASE_ASSETS_PATH = "../assets" 
-FONT_PATH = os.path.join(BASE_ASSETS_PATH, "fonts/ARIAL.TTF")
-MODEL_PATH = os.path.join(BASE_ASSETS_PATH, "models/yolov5nu.pt") # <-- CAMINHO DO MODELO ATUALIZADO
-
-# --- VERIFICAÇÃO DA FONTE ---
-try:
-    ImageFont.truetype(FONT_PATH, 10)
-    FONT_AVAILABLE = True
-    print(f"Fonte '{FONT_PATH}' carregada com sucesso.")
-except IOError:
-    print(f"AVISO: Arquivo de fonte '{FONT_PATH}' não encontrado.")
-    print("O texto será exibido com a fonte padrão do OpenCV (sem acentos).")
-    FONT_AVAILABLE = False
-
-
-# --- FUNÇÃO DE INTEGRAÇÃO (PLACEHOLDER PARA NÃO-PI) ---
-def send_command_to_esp32(command):
-    """Função de integração com o hardware (ESP32/Arduino)."""
-    print(f"--- [AÇÃO DO SISTEMA] --- Enviando comando: '{command}'")
-
-
-# --- FUNÇÃO PARA DESENHAR TEXTO COM ACENTOS ---
-def putText_com_acento(frame, text, position, font_path, font_size, color_bgr):
-    if not FONT_AVAILABLE:
-        cv2.putText(frame, text, position, cv2.FONT_HERSHEY_SIMPLEX, font_size / 30, color_bgr, 2)
-        return frame
-
-    pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-    font = ImageFont.truetype(font_path, font_size)
-    draw = ImageDraw.Draw(pil_img)
-    color_rgb = (color_bgr[2], color_bgr[1], color_bgr[0])
-    draw.text(position, text, font=font, fill=color_rgb)
-    return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-
-
-# --- LÓGICA PRINCIPAL DE DETECÇÃO ---
-def main():
-    print("Iniciando o sistema de detecção de pessoas...")
-
-    if IS_RASPBERRY_PI:
-        rasp.setup_gpio()
-
-    # --- CARREGAMENTO DO MODELO YOLO ---
-    if not os.path.exists(MODEL_PATH):
-        print(f"ERRO: Arquivo do modelo não encontrado em '{MODEL_PATH}'")
-        print("Verifique se o modelo 'yolov5nu.pt' está na pasta 'assets/models/'.")
-        return
-        
-    try:
-        print(f"Carregando modelo de '{MODEL_PATH}'...")
-        model = YOLO(MODEL_PATH) # <-- USA A VARIÁVEL COM O CAMINHO
-        print("Modelo YOLO carregado com sucesso.")
-    except Exception as e:
-        print(f"Erro ao carregar o modelo YOLO. O arquivo pode estar corrompido ou ser incompatível. Erro: {e}")
+    # 1. INICIALIZAÇÃO
+    control.setup_hardware()
+    model = detection.load_model()
+    if model is None:
+        print("Finalizando aplicação devido a erro no carregamento do modelo.")
         return
 
-    cap = cv2.VideoCapture(CAMERA_INDEX)
+    cap = cv2.VideoCapture(config.CAMERA_INDEX)
     if not cap.isOpened():
-        print(f"Erro: Não foi possível abrir a câmera com índice {CAMERA_INDEX}.")
+        print(f"ERRO: Não foi possível abrir a câmera com índice {config.CAMERA_INDEX}.")
         return
 
+    # 2. ESTADO DA APLICAÇÃO
     light_is_on = False
     last_person_seen_time = 0
 
-    print(f"Usando modelo {os.path.basename(MODEL_PATH)}. Sistema em execução na câmera {CAMERA_INDEX}. Pressione 'q' para sair.")
+    print(f"\nSistema em execução. Pressione 'q' na janela de vídeo para sair.")
 
-    while True:
-        success, frame = cap.read()
-        if not success:
-            print("Falha ao capturar frame. Fim do stream?")
-            break
+    # 3. LOOP PRINCIPAL
+    try:
+        while True:
+            success, frame = cap.read()
+            if not success:
+                print("Falha ao capturar frame. Fim do stream de vídeo.")
+                break
 
-        results = model(frame, conf=CONFIDENCE_THRESHOLD, classes=[0], verbose=False)
-        
-        person_detected_this_frame = False
-        person_count = 0
-        
-        for r in results:
-            for box in r.boxes:
-                if int(box.cls[0]) == 0:
-                    person_detected_this_frame = True
-                    person_count += 1
-                    
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    confidence = float(box.conf[0])
-                    label = f'Pessoa {confidence:.2f}'
-                    
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    frame = putText_com_acento(frame, label, (x1, y1 - 25), FONT_PATH, 20, (0, 255, 0))
+            # MÓDULO DE DETECÇÃO
+            detected_items, person_count = detection.detect_people(model, frame)
+            
+            # MÓDULO DE CONTROLE
+            current_time = time.time()
+            person_detected = person_count > 0
 
-        current_time = time.time()
-
-        if person_detected_this_frame:
-            last_person_seen_time = current_time
-            if not light_is_on:
-                print(f"Pessoa(s) detectada(s). Ativando o sistema.")
-                if IS_RASPBERRY_PI:
-                    rasp.send_command_to_gpio("on")
-                else:
-                    send_command_to_esp32("on")
-                light_is_on = True
-        else:
-            if light_is_on and (current_time - last_person_seen_time > OFF_DELAY_SECONDS):
-                print(f"Ambiente vazio por mais de {OFF_DELAY_SECONDS}s. Desativando o sistema.")
-                if IS_RASPBERRY_PI:
-                    rasp.send_command_to_gpio("off")
-                else:
-                    send_command_to_esp32("off")
+            if person_detected:
+                last_person_seen_time = current_time
+                if not light_is_on:
+                    print(f"[{time.strftime('%H:%M:%S')}] Pessoa(s) detectada(s). Ativando sistema.")
+                    control.send_command("on")
+                    light_is_on = True
+            elif light_is_on and (current_time - last_person_seen_time > config.OFF_DELAY_SECONDS):
+                print(f"[{time.strftime('%H:%M:%S')}] Ambiente vazio por {config.OFF_DELAY_SECONDS}s. Desativando sistema.")
+                control.send_command("off")
                 light_is_on = False
 
-        info_text = f"Pessoas Detectadas: {person_count}"
-        status_color = (0, 255, 0) if light_is_on else (0, 0, 255)
-        frame = putText_com_acento(frame, info_text, (10, 30), FONT_PATH, 25, status_color)
-        
-        window_title = "Detecção Automática de Pessoas (YOLOv5)"
-        cv2.imshow(window_title, frame)
+            # MÓDULO DE DISPLAY
+            frame = display.draw_detection_boxes(frame, detected_items)
+            frame = display.draw_status_overlay(frame, person_count, light_is_on)
+            display.show_frame(frame)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            # Verificação de saída
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                print("Tecla 'q' pressionada. Encerrando...")
+                break
+    finally:
+        # 4. FINALIZAÇÃO
+        cap.release()
+        cv2.destroyAllWindows()
+        control.cleanup_hardware()
+        print("--- SISTEMA FINALIZADO ---")
 
-    cap.release()
-    cv2.destroyAllWindows()
-    
-    if IS_RASPBERRY_PI:
-        rasp.cleanup_gpio()
-        
-    print("Sistema finalizado.")
-
-
-if __name__ == "__main__":
-    main()
-# --- END OF MODIFIED FILE main.py ---
+# Ponto de entrada para executar o script
+if __name__ == '__main__':
+    run()
