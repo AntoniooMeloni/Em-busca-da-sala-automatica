@@ -1,14 +1,16 @@
+# --- START OF MODIFIED FILE main.py ---
+
 import cv2
 import time
 from ultralytics import YOLO
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import platform
+import os # Importa o módulo 'os' para verificação de arquivos
 
 # --- VERIFICA SE ESTÁ RODANDO NO RASPBERRY PI ---
 IS_RASPBERRY_PI = False
 try:
-    # platform.machine() retorna 'armv7l', 'aarch64', etc. em um Pi
     if platform.machine().startswith('arm') or platform.machine().startswith('aarch64'):
         import rasp
         IS_RASPBERRY_PI = True
@@ -21,11 +23,17 @@ except ImportError:
 
 
 # --- PARÂMETROS DE CONFIGURAÇÃO ---
-CAMERA_INDEX = 1  # Use 0 para webcam interna, 1, 2, etc., para externas.
+CAMERA_INDEX = 0  # Use 0 para webcam interna, 1, 2, etc., para externas.
 OFF_DELAY_SECONDS = 20
 CONFIDENCE_THRESHOLD = 0.5
-FONT_PATH = "../assets/fonts/ARIAL.TTF"
 
+# --- NOVOS CAMINHOS PARA ASSETS ---
+# Assume que os scripts estão em uma pasta 'src' e 'assets' está no nível acima
+BASE_ASSETS_PATH = "../assets" 
+FONT_PATH = os.path.join(BASE_ASSETS_PATH, "fonts/ARIAL.TTF")
+MODEL_PATH = os.path.join(BASE_ASSETS_PATH, "models/yolov5nu.pt") # <-- CAMINHO DO MODELO ATUALIZADO
+
+# --- VERIFICAÇÃO DA FONTE ---
 try:
     ImageFont.truetype(FONT_PATH, 10)
     FONT_AVAILABLE = True
@@ -60,14 +68,21 @@ def putText_com_acento(frame, text, position, font_path, font_size, color_bgr):
 def main():
     print("Iniciando o sistema de detecção de pessoas...")
 
-    # Se for um Raspberry Pi, configura o GPIO
     if IS_RASPBERRY_PI:
         rasp.setup_gpio()
 
+    # --- CARREGAMENTO DO MODELO YOLO ---
+    if not os.path.exists(MODEL_PATH):
+        print(f"ERRO: Arquivo do modelo não encontrado em '{MODEL_PATH}'")
+        print("Verifique se o modelo 'yolov5nu.pt' está na pasta 'assets/models/'.")
+        return
+        
     try:
-        model = YOLO('yolov5nu.pt')
+        print(f"Carregando modelo de '{MODEL_PATH}'...")
+        model = YOLO(MODEL_PATH) # <-- USA A VARIÁVEL COM O CAMINHO
+        print("Modelo YOLO carregado com sucesso.")
     except Exception as e:
-        print(f"Erro ao carregar o modelo YOLO. Verifique sua conexão com a internet. Erro: {e}")
+        print(f"Erro ao carregar o modelo YOLO. O arquivo pode estar corrompido ou ser incompatível. Erro: {e}")
         return
 
     cap = cv2.VideoCapture(CAMERA_INDEX)
@@ -78,7 +93,7 @@ def main():
     light_is_on = False
     last_person_seen_time = 0
 
-    print(f"Usando modelo YOLOv5. Sistema em execução na câmera {CAMERA_INDEX}. Pressione 'q' para sair.")
+    print(f"Usando modelo {os.path.basename(MODEL_PATH)}. Sistema em execução na câmera {CAMERA_INDEX}. Pressione 'q' para sair.")
 
     while True:
         success, frame = cap.read()
@@ -137,7 +152,6 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
     
-    # Se for um Raspberry Pi, limpa o GPIO ao sair
     if IS_RASPBERRY_PI:
         rasp.cleanup_gpio()
         
@@ -146,3 +160,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# --- END OF MODIFIED FILE main.py ---
