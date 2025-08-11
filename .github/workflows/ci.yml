@@ -1,9 +1,3 @@
-# Create the directory structure first
-import os
-os.makedirs('.github/workflows', exist_ok=True)
-
-# Now, create the YAML file for the workflow
-workflow_content = """
 name: CI Build
 
 # Gatilhos: aciona o workflow em push ou pull request para a branch 'main'
@@ -44,10 +38,3 @@ jobs:
         run: |
           flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --ignore=E501,W503
-
-"""
-
-with open('.github/workflows/ci_build.yml', 'w') as f:
-    f.write(workflow_content)
-
-print("Workflow file '.github/workflows/ci_build.yml' created successfully.")
