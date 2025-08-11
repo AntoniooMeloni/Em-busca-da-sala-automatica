@@ -1,23 +1,25 @@
+# --- START OF MODIFIED FILE rasp.py ---
+
 import RPi.GPIO as GPIO
 import time
 
-# --- CONFIGURAÇÃO DO PINO GPIO ---
-# Use o número do pino GPIO (BCM), não o número físico do pino.
-# Exemplo: Pino físico 12 é o GPIO 18.
-RELAY_PIN = 18 
+# --- CONFIGURAÇÃO DOS PINOS GPIO ---
+# Use uma lista para gerenciar todos os pinos dos relés.
+# RELAY_PINS[0] -> Seção 1 de lâmpadas (GPIO 18)
+# RELAY_PINS[1] -> Seção 2 de lâmpadas (GPIO 23)
+RELAY_PINS = [18, 23] 
 
 def setup_gpio():
     """
-    Configura o modo da placa e o pino de saída.
+    Configura o modo da placa e todos os pinos de saída.
     """
     try:
-        # Usar a numeração Broadcom (BCM) para os pinos
         GPIO.setmode(GPIO.BCM)
-        # Desativa avisos de "canal já em uso"
         GPIO.setwarnings(False)
-        # Configura o pino do relé como saída e o inicializa como DESLIGADO (LOW)
-        GPIO.setup(RELAY_PIN, GPIO.OUT, initial=GPIO.LOW)
-        print(f"GPIO pino {RELAY_PIN} configurado como saída.")
+        # Configura cada pino da lista como saída e o inicializa como DESLIGADO (LOW)
+        for pin in RELAY_PINS:
+            GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+        print(f"GPIO pinos {RELAY_PINS} configurados como saída.")
     except Exception as e:
         print(f"ERRO ao configurar GPIO: {e}")
         print("Certifique-se de que o script está rodando em um Raspberry Pi com privilégios de acesso ao GPIO (use 'sudo').")
@@ -25,15 +27,17 @@ def setup_gpio():
 
 def send_command_to_gpio(command):
     """
-    Envia um comando para ligar ou desligar o pino GPIO.
+    Envia um comando para ligar ou desligar TODOS os pinos de relé.
     'command' pode ser "on" ou "off".
     """
     if command.lower() == "on":
-        print(f"--- [GPIO] --- Ligando pino {RELAY_PIN} (HIGH)")
-        GPIO.output(RELAY_PIN, GPIO.HIGH)
+        print(f"--- [GPIO] --- Ligando todos os relés (pinos {RELAY_PINS})")
+        for pin in RELAY_PINS:
+            GPIO.output(pin, GPIO.HIGH)
     elif command.lower() == "off":
-        print(f"--- [GPIO] --- Desligando pino {RELAY_PIN} (LOW)")
-        GPIO.output(RELAY_PIN, GPIO.LOW)
+        print(f"--- [GPIO] --- Desligando todos os relés (pinos {RELAY_PINS})")
+        for pin in RELAY_PINS:
+            GPIO.output(pin, GPIO.LOW)
     else:
         print(f"Comando GPIO desconhecido: '{command}'")
 
@@ -42,6 +46,8 @@ def cleanup_gpio():
     Limpa as configurações do GPIO, revertendo os pinos ao estado padrão.
     """
     print("Limpando configurações do GPIO...")
+    # Garante que os relés sejam desligados antes de limpar
+    send_command_to_gpio("off")
     GPIO.cleanup()
 
 # Bloco para teste direto do módulo (opcional)
@@ -50,14 +56,14 @@ if __name__ == '__main__':
     setup_gpio()
     
     try:
-        print("Ligando o relé por 5 segundos...")
+        print("Ligando os relés por 5 segundos...")
         send_command_to_gpio("on")
         time.sleep(5)
         
-        print("Desligando o relé.")
+        print("Desligando os relés.")
         send_command_to_gpio("off")
         
     finally:
-        # Garante que o cleanup será chamado mesmo se ocorrer um erro
         cleanup_gpio()
         print("Teste finalizado.")
+# --- END OF MODIFIED FILE rasp.py ---
