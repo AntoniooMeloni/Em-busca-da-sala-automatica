@@ -1,53 +1,5 @@
-# Create the directory structure first
-import os
-os.makedirs('.github/workflows', exist_ok=True)
-
-# Now, create the YAML file for the workflow
-workflow_content = """
-name: CI Build
-
-# Gatilhos: aciona o workflow em push ou pull request para a branch 'main'
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-jobs:
-  build:
-    # O tipo de máquina virtual para rodar o job
-    runs-on: ubuntu-latest
-
-    steps:
-      # 1. Faz o checkout do seu código do repositório para a máquina virtual
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # 2. Configura o ambiente Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      # 3. Instala as dependências
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 # Instala o linter
-          # Instala as dependências do projeto a partir do requirements.txt
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      # 4. Roda o linter (Flake8) para verificar a qualidade do código
-      # Se o linter encontrar erros, o workflow irá falhar.
-      # --ignore=E501,W503 ignora erros de linha muito longa e quebras de linha antes de operadores binários.
-      - name: Lint with flake8
-        run: |
-          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --ignore=E501,W503
-
-"""
-
-with open('.github/workflows/ci_build.yml', 'w') as f:
-    f.write(workflow_content)
-
-print("Workflow file '.github/workflows/ci_build.yml' created successfully.")
+ultralytics
+numpy
+opencv-python-headless
+Pillow
+# RPi.GPIO é específico do hardware Raspberry Pi e não será instalado no ambiente de build.
