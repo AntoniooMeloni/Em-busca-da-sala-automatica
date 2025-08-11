@@ -105,9 +105,9 @@ pip install -r requirements.txt</code></pre>
   <h2 style="color: #00529B; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 40px;">👥 Autores e Contribuidores</h2>
   <p>Este projeto é o resultado do esforço colaborativo dos seguintes alunos:</p>
   <ul>
-    <li>[Nome do Aluno 1]</li>
-    <li>[Nome do Aluno 2]</li>
-    <li>(Adicione mais nomes aqui)</li>
+    <li>[Antônio A. Meloni]</li>
+    <li>[João Carlos Borges]</li>
+    <li>(Pedro H. Garcia)</li>
   </ul>
 
   <!-- RODAPÉ -->
