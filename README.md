@@ -103,7 +103,7 @@ pip install -r requirements.txt</code></pre>
 
   <!-- AUTORES -->
   <h2 style="color: #00529B; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 40px;">👥 Autores e Contribuidores</h2>
-  <p>Este projeto é o resultado do esforço colaborativo dos seguintes alunos:</p>
+  <p>Este projeto é o resultado do esforço colaborativo das seguintes pessoas:</p>
   <ul>
     <li>[Antônio A. Meloni]</li>
     <li>[João Carlos Borges]</li>
