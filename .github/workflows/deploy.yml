@@ -1,11 +1,9 @@
-# .github/workflows/deploy.yml
-
 name: Empacotar Aplicação para Raspberry Pi
 
 on:
   push:
     branches:
-      - main  # ou master, conforme seu branch principal
+      - main
 
 jobs:
   build-and-package:
@@ -15,32 +13,32 @@ jobs:
         python-version: [3.11]
 
     steps:
-      - name: 1. Clonar o repositório
-        uses: actions/checkout@v3
+      - name: Clonar o repositório
+        uses: actions/checkout@v4
 
-      - name: 2. Configurar Python ${{ matrix.python-version }}
+      - name: Configurar Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: 3. Cache pip
-        uses: actions/cache@v3
+      - name: Cache pip
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: 4. Criar diretório para o modelo
+      - name: Criar diretório para o modelo
         run: mkdir -p assets/models
 
-      - name: 5. Baixar o modelo de detecção YOLOv5
+      - name: Baixar o modelo de detecção YOLOv5
         run: |
           echo "Baixando o modelo YOLOv5..."
           wget -q --show-progress https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov5nu.pt -O assets/models/yolov5nu.pt
           echo "Download concluído."
 
-      - name: 6. Criar script de inicialização (start.sh)
+      - name: Criar script de inicialização (start.sh)
         run: |
           echo "Criando script start.sh..."
           cat << 'EOF' > start.sh
@@ -67,13 +65,14 @@ jobs:
           EOF
           chmod +x start.sh
 
-      - name: 7. Empacotar a aplicação em um arquivo ZIP
+      - name: Empacotar a aplicação em um arquivo ZIP
         run: |
           echo "Criando o pacote sala-automatica-v1.0.zip..."
           zip -r sala-automatica-v1.0.zip src assets requirements.txt start.sh LICENSE README.md
 
-      - name: 8. Fazer upload do pacote como artefato
-        uses: actions/upload-artifact@v3
+      - name: Fazer upload do pacote como artefato
+        uses: actions/upload-artifact@v4
         with:
           name: pacote-sala-automatica
           path: sala-automatica-v1.0.zip
+          retention-days: 30
