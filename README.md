@@ -107,7 +107,7 @@ pip install -r requirements.txt</code></pre>
   <ul>
     <li>[Antônio A. Meloni]</li>
     <li>[João Carlos Borges]</li>
-    <li>(Pedro H. Garcia)</li>
+    <li>[Pedro Henrique Garcia]</li>
   </ul>
 
   <!-- RODAPÉ -->
