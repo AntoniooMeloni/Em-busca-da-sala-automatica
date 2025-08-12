@@ -10,7 +10,7 @@
 
   <!-- CABEÇALHO -->
   <div style="text-align: center; border-bottom: 2px solid #00529B; padding-bottom: 20px; margin-bottom: 30px;">
-    <img src="https://www.sendspace.com/file/u2a00j" alt="Logo SENAI" width="150">
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRArHRQlKS6To2_41tWeGjSX8gB-A3QEX8Xwg&s" alt="Logo SENAI" width="150">
     <h1 style="color: #00529B; margin-top: 10px;">🎓 Projetos de Automação - SENAI</h1>
     <p style="font-size: 1.2em; color: #555;">Repositório central para os projetos de automação desenvolvidos pela turma, com o objetivo de criar uma sala de aula inteligente e conectada.</p>
   </div>
