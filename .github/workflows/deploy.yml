@@ -1,0 +1,84 @@
+# .github/workflows/deploy.yml
+
+name: Empacotar Aplicação para Raspberry Pi
+
+on:
+  push:
+    branches:
+      - main # ou master, dependendo do nome da sua branch principal
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
+
+    steps:
+    - name: 1. Clonar o repositório
+      uses: actions/checkout@v3
+
+    - name: 2. Configurar Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: 3. Criar diretório para o modelo
+      # O caminho é baseado no arquivo config.py: assets/models/
+      run: mkdir -p assets/models
+
+    - name: 4. Baixar o modelo de detecção YOLOv5
+      # A URL é obtida do seu arquivo src/light_embedded/detection.py
+      run: |
+        echo "Baixando o modelo YOLOv5..."
+        wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov5nu.pt -O assets/models/yolov5nu.pt
+        echo "Download concluído."
+
+    - name: 5. Criar script de inicialização (start.sh)
+      run: |
+        echo "Criando script de setup e execução..."
+        # Este script automatiza a configuração no Raspberry Pi
+        cat << 'EOF' > start.sh
+        #!/bin/bash
+        echo "--- Configurando Ambiente Virtual ---"
+        
+        # Verifica se o Python 3 está instalado
+        if ! command -v python3 &> /dev/null
+        then
+            echo "ERRO: Python 3 não encontrado. Por favor, instale-o."
+            exit 1
+        fi
+
+        # Cria o ambiente virtual
+        python3 -m venv venv
+        
+        # Ativa o ambiente virtual
+        source venv/bin/activate
+        
+        echo "--- Instalando Dependências ---"
+        # Instala as bibliotecas do requirements.txt
+        pip install -r requirements.txt
+        
+        echo "--- Executando a Aplicação ---"
+        # Executa o projeto como um módulo a partir da raiz
+        python3 -m src.light_embedded.main
+        
+        # Desativa o ambiente virtual ao sair
+        deactivate
+        EOF
+        
+        # Torna o script executável
+        chmod +x start.sh
+
+    - name: 6. Empacotar a aplicação em um arquivo ZIP
+      run: |
+        echo "Criando o pacote de implantação..."
+        # O arquivo zip conterá o código, assets, requirements e o script de start
+        zip -r sala-automatica-v1.0.zip src assets requirements.txt start.sh LICENSE README.md
+
+    - name: 7. Fazer upload do pacote como um artefato
+      uses: actions/upload-artifact@v3
+      with:
+        name: pacote-sala-automatica
+        path: sala-automatica-v1.0.zip
